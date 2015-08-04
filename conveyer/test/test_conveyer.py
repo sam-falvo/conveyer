@@ -21,3 +21,4 @@ class TestConveyer(SynchronousTestCase):
         self.assertEquals(type(creator), CreateLogCmd)
         self.assertEquals(type(appender), AppendLogCmd)
         self.assertEquals(creator.filename, "testfile.dat")
+        self.assertEquals(appender.event, "{message: \"test\"}")

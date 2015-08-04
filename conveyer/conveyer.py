@@ -24,10 +24,13 @@ class CreateLogCmd(object):
     filename = attr.ib(validator=attr.validators.instance_of(str))
 
 
+@attr.s
 class AppendLogCmd(object):
     """
     Append to the currently open log file.
     """
+
+    event = attr.ib(validator=attr.validators.instance_of(str))
 
 
 @attr.s
@@ -58,7 +61,7 @@ class Conveyer(object):
         """
         return [
             CreateLogCmd(filename=self.config["log_file"]),
-            AppendLogCmd()
+            AppendLogCmd(event=event)
         ]
 
 
