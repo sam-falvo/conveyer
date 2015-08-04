@@ -62,16 +62,16 @@ class Conveyer(object):
         ]
 
 
-@app.route('/')
-def hello(request):
-    """dummy."""
-    request.response = 200
-    return "\n\nStill running!\n\n"
-
-
-@app.route('/log', methods=['POST'])
-def accept_log(request):
-    """dummy."""
-    request.response = 200
-    the_log = request.content.read()
-    return "I GOT THE FOLLOWING LOG:\n{}".format(the_log)
+# @app.route('/')
+# def hello(request):
+#     """dummy."""
+#     request.response = 200
+#     return "\n\nStill running!\n\n"
+#
+#
+# @app.route('/log', methods=['POST'])
+# def accept_log(request):
+#     """dummy."""
+#     request.response = 200
+#     the_log = request.content.read()
+#     return "I GOT THE FOLLOWING LOG:\n{}".format(the_log)
