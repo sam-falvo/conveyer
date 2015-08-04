@@ -13,7 +13,9 @@ def setup_options(name, version):
     :returns: a dictionary of setup options.
     """
     return dict(
-        install_requires=[],
+        install_requires=[
+            "klein",
+        ],
         package_dir={"conveyer": "conveyer"},
         packages=find_packages(exclude=[]),
     )
