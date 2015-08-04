@@ -1,3 +1,5 @@
+import StringIO
+
 from twisted.trial.unittest import SynchronousTestCase
 
 from conveyer.conveyer import Conveyer, CreateLogCmd, AppendLogCmd
@@ -5,10 +7,21 @@ from conveyer.conveyer import Conveyer, CreateLogCmd, AppendLogCmd
 
 class TestConveyer(SynchronousTestCase):
     def setUp(self):
+        self.events_out = StringIO.StringIO()
+
+        def file_override(filename, *args, **kwargs):
+            """
+            Return something that is File-like so we don't hit the filesystem.
+            """
+            return self.events_out
+
         self.conveyer_config = {
             "log_file": "testfile.dat",
         }
-        self.conveyer = Conveyer(config=self.conveyer_config)
+        self.conveyer = Conveyer(
+            config=self.conveyer_config,
+            file_override=file_override,
+        )
 
     def test_first_log_post(self):
         """
@@ -34,3 +47,4 @@ class TestConveyer(SynchronousTestCase):
         self.assertEquals(len(commands), 1)
         self.assertEquals(type(commands[0]), AppendLogCmd)
         self.assertEquals(commands[0].event, "{message: \"second\"}")
+        self.assertEquals(self.events_out.getvalue(), "{message: \"first\"}")

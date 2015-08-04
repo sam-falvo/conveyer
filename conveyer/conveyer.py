@@ -4,11 +4,24 @@ compatible cloud monitoring agent.
 """
 
 import attr
+from attr.validators import instance_of
 
 from klein import Klein
 
 
 app = Klein()
+
+
+# Python has no distinct "function" type that I can discern.
+# Printing a function's type to the console will indeed print "function",
+# but attempting to use it as a type keyword in code for type-checking purposes
+# fails with a syntax error.
+#
+# Therefore, I create this bogus function and take its class.  It seems to
+# work for my needs. -saf2
+def _blort():
+    pass
+_function = _blort.__class__
 
 
 @attr.s
@@ -21,11 +34,12 @@ class CreateLogCmd(object):
     log file contents.
     """
 
-    filename = attr.ib(validator=attr.validators.instance_of(str))
+    filename = attr.ib(validator=instance_of(str))
 
     def execute(self, conveyer):
         """Opens a new log file."""
-        conveyer.logfile = self.filename
+        _file = conveyer.file_override or file
+        conveyer.logfile = _file(self.filename, "wa")
 
 
 @attr.s
@@ -34,10 +48,12 @@ class AppendLogCmd(object):
     Append to the currently open log file.
     """
 
-    event = attr.ib(validator=attr.validators.instance_of(str))
+    event = attr.ib(validator=instance_of(str))
 
     def execute(self, conveyer):
         """Appends an event to a log file."""
+        conveyer.logfile.write(self.event)
+        conveyer.logfile.flush()
 
 
 @attr.s
@@ -47,7 +63,8 @@ class _Conveyer(object):
     circumstances requires, change out the file.
     """
 
-    config = attr.ib(validator=attr.validators.instance_of(dict))
+    config = attr.ib(validator=instance_of(dict))
+    file_override = attr.ib(validator=instance_of(_function))
 
     def reset(self):
         """
@@ -85,11 +102,11 @@ class _Conveyer(object):
         return plan
 
 
-def Conveyer(config):
+def Conveyer(config, file_override=None):
     """
     Create and initialize a conveyer instance.
     """
-    c = _Conveyer(config=config)
+    c = _Conveyer(config=config, file_override=file_override)
     c.reset()
     return c
 
