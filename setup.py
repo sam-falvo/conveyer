@@ -15,6 +15,7 @@ def setup_options(name, version):
     return dict(
         install_requires=[
             "klein",
+            "attrs",
         ],
         package_dir={"conveyer": "conveyer"},
         packages=find_packages(exclude=[]),
