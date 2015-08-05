@@ -4,25 +4,11 @@ compatible cloud monitoring agent.
 """
 
 import attr
+import os
+
 from attr.validators import instance_of
 
 from klein import Klein
-
-
-app = Klein()
-
-def _blort():
-    """
-    Python has no distinct "function" type that I can discern.
-    Printing a function's type to the console will indeed print "function",
-    but attempting to use it as a type keyword in code for type-checking purposes
-    fails with a syntax error.
-
-    Therefore, I create this bogus function and take its class.  It seems to
-    work for my needs. -saf2
-    """
-
-_function = _blort.__class__
 
 
 @attr.s
@@ -65,17 +51,21 @@ class _Conveyer(object):
     """
 
     config = attr.ib(validator=instance_of(dict))
-    file_override = attr.ib(validator=instance_of(_function))
+    file_override = attr.ib(validator=lambda _1, _2, v: callable(v))
+    renamer = attr.ib(validator=lambda _1, _2, v: callable(v))
 
     def reset(self):
         """
-        Reset the conveyer instance to a fresh state.
+        Reset the conveyer instance to a fresh state.  Preserve filesystem
+        abstractions though.
         """
         self.logfile = None
 
     def execute(self, commands):
         """
-        Executes on a plan returned by the log method.
+        Executes on a plan returned by the log method.  This separation is
+        intended to facilitate easier unit testing in the presence of side-
+        effecting code.
         """
         for command in commands:
             command.execute(self)
@@ -103,31 +93,62 @@ class _Conveyer(object):
         return plan
 
     def rotate_logs(self):
-       """
-       Rotate the logs.
-       """
-       self.logfile = None
+        """
+        Rotate the logs.
+
+        :return: The name of the freshly rotated log file.  You're free to do
+           what you with with it.  Delete it if you wish to avoid leaking disk
+           space.
+        """
+        self.logfile.close()
+        self.logfile = None
+        fn = self.config["log_file"]
+        renamed_fn = "{0}.rotated".format(fn)
+        self.renamer(fn, renamed_fn)
+        return renamed_fn
 
 
-def Conveyer(config, file_override=None):
+def Conveyer(config, file_override=None, renamer=None):
     """
     Create and initialize a conveyer instance.
     """
-    c = _Conveyer(config=config, file_override=file_override)
+    c = _Conveyer(config=config, file_override=file_override, renamer=renamer)
     c.reset()
     return c
 
 
-# @app.route('/')
-# def hello(request):
-#     """dummy."""
-#     request.response = 200
-#     return "\n\nStill running!\n\n"
-#
-#
-# @app.route('/log', methods=['POST'])
-# def accept_log(request):
-#     """dummy."""
-#     request.response = 200
-#     the_log = request.content.read()
-#     return "I GOT THE FOLLOWING LOG:\n{}".format(the_log)
+conveyer = Conveyer(
+    config={"log_file": "/tmp/logs"},
+    file_override=file,
+    renamer=os.rename,
+)
+
+app = Klein()
+
+
+@app.route('/')
+def hello(request):
+    """Report if we're still alive and functioning."""
+    request.response = 200
+    return "Still running!\n"
+
+
+@app.route('/log', methods=['POST'])
+def accept_log(request):
+    """Accept a log message for logging."""
+    the_log = request.content.read()
+    conveyer.execute(conveyer.log(the_log))
+    request.response = 200
+    return "ok"
+
+
+@app.route('/rotate', methods=['POST'])
+def rotate_log(request):
+    """Rotate the log, and report the filename back to the client."""
+    fn = conveyer.rotate_logs()
+    request.response = 200
+    return fn
+
+
+if __name__ == '__main__':
+    app.run("localhost", 10100)

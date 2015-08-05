@@ -19,7 +19,17 @@ class TestConveyer(SynchronousTestCase):
         self.conveyer = Conveyer(
             config=self.conveyer_config,
             file_override=file_override,
+            renamer=self.my_rename,
         )
+        self.renamerCalled = False
+
+    def my_rename(self, src, dst):
+        """
+        Mimic Python's os.rename function, but we don't use anything in the
+        real filesystem, so just eat the operation.  We will record that
+        we were called though.
+        """
+        self.renamerCalled = True
 
     def new_file_override(self):
         """
@@ -63,12 +73,9 @@ class TestConveyer(SynchronousTestCase):
         self.conveyer.execute(self.conveyer.log("{message: \"first\"}"))
         self.conveyer.execute(self.conveyer.log("{message: \"second\"}"))
         self.conveyer.execute(self.conveyer.log("{message: \"third\"}"))
-        self.conveyer.rotate_logs()
+        filename = self.conveyer.rotate_logs()
         self.assertEquals(self.conveyer.logfile, None)
-        self.assertEquals(
-            self.events_out.getvalue(),
-            "{message: \"first\"}{message: \"second\"}{message: \"third\"}"
-        )
+        self.assertEquals(filename, "testfile.dat.rotated")
 
     def test_logfile_recreates_after_rotation(self):
         """
@@ -80,3 +87,4 @@ class TestConveyer(SynchronousTestCase):
         self.conveyer.rotate_logs()
         self.conveyer.execute(self.conveyer.log("{message: \"fourth\"}"))
         self.assertEquals(self.events_out.getvalue(), "{message: \"fourth\"}")
+        self.assertTrue(self.renamerCalled)
