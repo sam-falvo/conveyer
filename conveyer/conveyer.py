@@ -11,16 +11,17 @@ from klein import Klein
 
 app = Klein()
 
-
-# Python has no distinct "function" type that I can discern.
-# Printing a function's type to the console will indeed print "function",
-# but attempting to use it as a type keyword in code for type-checking purposes
-# fails with a syntax error.
-#
-# Therefore, I create this bogus function and take its class.  It seems to
-# work for my needs. -saf2
 def _blort():
-    pass
+    """
+    Python has no distinct "function" type that I can discern.
+    Printing a function's type to the console will indeed print "function",
+    but attempting to use it as a type keyword in code for type-checking purposes
+    fails with a syntax error.
+
+    Therefore, I create this bogus function and take its class.  It seems to
+    work for my needs. -saf2
+    """
+
 _function = _blort.__class__
 
 
@@ -100,6 +101,12 @@ class _Conveyer(object):
         if not self.logfile:
             plan.insert(0, CreateLogCmd(filename=self.config["log_file"]))
         return plan
+
+    def rotate_logs(self):
+       """
+       Rotate the logs.
+       """
+       self.logfile = None
 
 
 def Conveyer(config, file_override=None):

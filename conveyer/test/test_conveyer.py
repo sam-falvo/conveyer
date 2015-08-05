@@ -48,3 +48,17 @@ class TestConveyer(SynchronousTestCase):
         self.assertEquals(type(commands[0]), AppendLogCmd)
         self.assertEquals(commands[0].event, "{message: \"second\"}")
         self.assertEquals(self.events_out.getvalue(), "{message: \"first\"}")
+
+    def test_log_rotation(self):
+        """
+        Log rotation can occur at any time whatsoever.
+        """
+        self.conveyer.execute(self.conveyer.log("{message: \"first\"}"))
+        self.conveyer.execute(self.conveyer.log("{message: \"second\"}"))
+        self.conveyer.execute(self.conveyer.log("{message: \"third\"}"))
+        self.conveyer.rotate_logs()
+        self.assertEquals(self.conveyer.logfile, None)
+        self.assertEquals(
+            self.events_out.getvalue(),
+            "{message: \"first\"}{message: \"second\"}{message: \"third\"}"
+        )
