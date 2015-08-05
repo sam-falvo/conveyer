@@ -7,13 +7,11 @@ from conveyer.conveyer import Conveyer, CreateLogCmd, AppendLogCmd
 
 class TestConveyer(SynchronousTestCase):
     def setUp(self):
-        self.events_out = StringIO.StringIO()
-
         def file_override(filename, *args, **kwargs):
             """
             Return something that is File-like so we don't hit the filesystem.
             """
-            return self.events_out
+            return self.new_file_override()
 
         self.conveyer_config = {
             "log_file": "testfile.dat",
@@ -22,6 +20,15 @@ class TestConveyer(SynchronousTestCase):
             config=self.conveyer_config,
             file_override=file_override,
         )
+
+    def new_file_override(self):
+        """
+        This helper is invoked by the tested class when it wants to create a
+        new file.  Return a file-like object, so that we avoid hitting the
+        filesystem.
+        """
+        self.events_out = StringIO.StringIO()
+        return self.events_out
 
     def test_first_log_post(self):
         """
@@ -62,3 +69,14 @@ class TestConveyer(SynchronousTestCase):
             self.events_out.getvalue(),
             "{message: \"first\"}{message: \"second\"}{message: \"third\"}"
         )
+
+    def test_logfile_recreates_after_rotation(self):
+        """
+        Log rotation can occur at any time whatsoever.
+        """
+        self.conveyer.execute(self.conveyer.log("{message: \"first\"}"))
+        self.conveyer.execute(self.conveyer.log("{message: \"second\"}"))
+        self.conveyer.execute(self.conveyer.log("{message: \"third\"}"))
+        self.conveyer.rotate_logs()
+        self.conveyer.execute(self.conveyer.log("{message: \"fourth\"}"))
+        self.assertEquals(self.events_out.getvalue(), "{message: \"fourth\"}")
