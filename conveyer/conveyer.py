@@ -137,7 +137,7 @@ def hello(request):
 def accept_log(request):
     """Accept a log message for logging."""
     the_log = request.content.read()
-    conveyer.execute(conveyer.log(the_log))
+    conveyer.execute(conveyer.log("{0}\n".format(the_log)))
     request.response = 200
     return "ok"
 
