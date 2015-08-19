@@ -1,0 +1,14 @@
+{
+    "state_file_name": "/tmp/plugin-state-file.json",
+    "conveyer_url": "http://localhost:10100/rotate",
+    "metrics": [
+        "failure.server.launch.count",
+        "failure.server.launch.rate_1m",
+        "failure.server.launch.rate_5m",
+        "failure.server.launch.rate_15m",
+        "failure.authentication.identity.count",
+        "failure.authentication.identity.rate_1m",
+        "failure.authentication.identity.rate_5m",
+        "failure.authentication.identity.rate_15m"
+    ]
+}
