@@ -117,38 +117,44 @@ def Conveyer(config, file_override=None, renamer=None):
     return c
 
 
-conveyer = Conveyer(
-    config={"log_file": "/tmp/logs"},
-    file_override=file,
-    renamer=os.rename,
-)
+class ConveyerApp(object):
+    """Model a single instance of the Conveyer daemon."""
 
-app = Klein()
+    app = Klein()
 
+    def __init__(self):
+        """Obtains a Conveyer instance to forward requests to."""
 
-@app.route('/')
-def hello(request):
-    """Report if we're still alive and functioning."""
-    request.response = 200
-    return "Still running!\n"
+        self.conveyer = Conveyer(
+            config={"log_file": "/tmp/logs"},
+            file_override=file,
+            renamer=os.rename,
+        )
 
-
-@app.route('/log', methods=['POST'])
-def accept_log(request):
-    """Accept a log message for logging."""
-    the_log = request.content.read()
-    conveyer.execute(conveyer.log("{0}\n".format(the_log)))
-    request.response = 200
-    return "ok"
+    @app.route('/')
+    def hello(self, request):
+        """Report if we're still alive and functioning."""
+        request.response = 200
+        return "Still running!\n"
 
 
-@app.route('/rotate', methods=['POST'])
-def rotate_log(request):
-    """Rotate the log, and report the filename back to the client."""
-    fn = conveyer.rotate_logs()
-    request.response = 200
-    return fn
+    @app.route('/log', methods=['POST'])
+    def accept_log(self, request):
+        """Accept a log message for logging."""
+        the_log = request.content.read()
+        self.conveyer.execute(self.conveyer.log("{0}\n".format(the_log)))
+        request.response = 200
+        return "ok"
+
+
+    @app.route('/rotate', methods=['POST'])
+    def rotate_log(self, request):
+        """Rotate the log, and report the filename back to the client."""
+        fn = self.conveyer.rotate_logs()
+        request.response = 200
+        return fn
 
 
 if __name__ == '__main__':
-    app.run("localhost", 10100)
+    app = ConveyerApp()
+    app.app.run("localhost", 10100)
