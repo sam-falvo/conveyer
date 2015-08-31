@@ -4,6 +4,7 @@ compatible cloud monitoring agent.
 """
 
 import attr
+import string
 import os
 
 from attr.validators import instance_of
@@ -122,7 +123,7 @@ class ConveyerApp(object):
 
     app = Klein()
 
-    def __init__(self):
+    def reset(self):
         """Obtains a Conveyer instance to forward requests to."""
 
         self.conveyer = Conveyer(
@@ -137,7 +138,6 @@ class ConveyerApp(object):
         request.response = 200
         return "Still running!\n"
 
-
     @app.route('/log', methods=['POST'])
     def accept_log(self, request):
         """Accept a log message for logging."""
@@ -145,7 +145,6 @@ class ConveyerApp(object):
         self.conveyer.execute(self.conveyer.log("{0}\n".format(the_log)))
         request.response = 200
         return "ok"
-
 
     @app.route('/rotate', methods=['POST'])
     def rotate_log(self, request):
@@ -156,5 +155,7 @@ class ConveyerApp(object):
 
 
 if __name__ == '__main__':
+    port = string.atoi(os.environ.get("CONVEYER_PORT", "10100"))
     app = ConveyerApp()
-    app.app.run("localhost", 10100)
+    app.reset()
+    app.app.run("localhost", port)
