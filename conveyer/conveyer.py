@@ -118,14 +118,17 @@ def Conveyer(config, file_override=None, renamer=None):
     return c
 
 
+@attr.s(hash=False)
 class ConveyerApp(object):
     """Model a single instance of the Conveyer daemon."""
+
+    conveyer = attr.ib(validator=attr.validators.instance_of(_Conveyer))
 
     app = Klein()
 
     def reset(self):
         """Obtains a Conveyer instance to forward requests to."""
-
+        assert False
         self.conveyer = Conveyer(
             config={"log_file": "/tmp/logs"},
             file_override=file,
@@ -157,6 +160,10 @@ class ConveyerApp(object):
 if __name__ == '__main__':
     port = string.atoi(os.environ.get("CONVEYER_PORT", "10100"))
     host = os.environ.get("CONVEYER_HOST", "localhost")
-    app = ConveyerApp()
-    app.reset()
+    logs = os.environ.get("CONVEYER_LOGS", "/tmp/conveyer-logs")
+    app = ConveyerApp(conveyer=Conveyer(
+        config={"log_file": logs},
+        file_override=file,
+        renamer=os.rename,
+    ))
     app.app.run(host, port)
