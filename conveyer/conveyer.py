@@ -156,6 +156,7 @@ class ConveyerApp(object):
 
 if __name__ == '__main__':
     port = string.atoi(os.environ.get("CONVEYER_PORT", "10100"))
+    host = os.environ.get("CONVEYER_HOST", "localhost")
     app = ConveyerApp()
     app.reset()
-    app.app.run("localhost", port)
+    app.app.run(host, port)
