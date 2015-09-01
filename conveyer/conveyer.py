@@ -126,15 +126,6 @@ class ConveyerApp(object):
 
     app = Klein()
 
-    def reset(self):
-        """Obtains a Conveyer instance to forward requests to."""
-        assert False
-        self.conveyer = Conveyer(
-            config={"log_file": "/tmp/logs"},
-            file_override=file,
-            renamer=os.rename,
-        )
-
     @app.route('/')
     def hello(self, request):
         """Report if we're still alive and functioning."""
