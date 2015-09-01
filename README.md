@@ -170,6 +170,77 @@ set to a different location, like so:
 CONVEYER_AGENT_PLUGIN_CONFIG=/var/conveyer/config.json python conveyer-plugin.py
 ```
 
+## Testing with Logstash
+
+You can test Conveyer with a local deployment of Logstash.
+I use the following Logstash configuration for this purpose:
+
+```
+input {
+	generator {
+		message => "Launching server failed: UpstreamError('identity error: 401 - Unable to authenticate user with credentials provided.',)"
+	}
+}
+
+filter {
+	if [message] =~ /.*Launching server failed.*/ {
+		metrics {
+			meter => ["failure.server.launch"]
+			add_tag => ["metric"]
+			flush_interval => 1
+		}
+	}
+
+	if [message] =~ /identity error: 401/ {
+		metrics {
+			meter => ["failure.authentication.identity"]
+			add_tag => ["metric"]
+			flush_interval => 1
+		}
+	}
+}
+
+output {
+	if "metric" in [tags] {
+		http {
+			http_method => "post"
+			url => "http://localhost:10100/log"
+		}
+	}
+
+	file {
+		path => "/tmp/ls.log"
+	}
+}
+```
+
+Save this configuration file inside Logstash's directory,
+say, as `test.config`,
+and invoke it as follows:
+
+```
+bin/logstash agent -f test.config
+```
+
+You should see Logstash
+produce a ton of log entries
+in `/tmp/ls.log`.
+Periodically, though,
+it should generate metrics
+and forward them to Conveyer.
+You should see Conveyer deposit events
+in `/tmp/conveyer-logs` approximately once every second.
+The flush rate is determined by the `flush_interval` setting
+in `test.config`.
+Finally, if you execute:
+
+```
+curl -X POST http://localhost:10100/rotate
+```
+
+You should see the name of the rotated logfile,
+and `/tmp/conveyer-logs` should start to fill with all-new content.
+
 # How it works
 
 Conveyer basically consists of two parts.
