@@ -4,6 +4,7 @@ compatible cloud monitoring agent.
 """
 
 import attr
+import string
 import os
 
 from attr.validators import instance_of
@@ -117,38 +118,43 @@ def Conveyer(config, file_override=None, renamer=None):
     return c
 
 
-conveyer = Conveyer(
-    config={"log_file": "/tmp/logs"},
-    file_override=file,
-    renamer=os.rename,
-)
+@attr.s(hash=False)
+class ConveyerApp(object):
+    """Model a single instance of the Conveyer daemon."""
 
-app = Klein()
+    conveyer = attr.ib(validator=attr.validators.instance_of(_Conveyer))
 
+    app = Klein()
 
-@app.route('/')
-def hello(request):
-    """Report if we're still alive and functioning."""
-    request.response = 200
-    return "Still running!\n"
+    @app.route('/')
+    def hello(self, request):
+        """Report if we're still alive and functioning."""
+        request.response = 200
+        return "Still running!\n"
 
+    @app.route('/log', methods=['POST'])
+    def accept_log(self, request):
+        """Accept a log message for logging."""
+        the_log = request.content.read()
+        self.conveyer.execute(self.conveyer.log("{0}\n".format(the_log)))
+        request.response = 200
+        return "ok"
 
-@app.route('/log', methods=['POST'])
-def accept_log(request):
-    """Accept a log message for logging."""
-    the_log = request.content.read()
-    conveyer.execute(conveyer.log("{0}\n".format(the_log)))
-    request.response = 200
-    return "ok"
-
-
-@app.route('/rotate', methods=['POST'])
-def rotate_log(request):
-    """Rotate the log, and report the filename back to the client."""
-    fn = conveyer.rotate_logs()
-    request.response = 200
-    return fn
+    @app.route('/rotate', methods=['POST'])
+    def rotate_log(self, request):
+        """Rotate the log, and report the filename back to the client."""
+        fn = self.conveyer.rotate_logs()
+        request.response = 200
+        return fn
 
 
 if __name__ == '__main__':
-    app.run("localhost", 10100)
+    port = string.atoi(os.environ.get("CONVEYER_PORT", "10100"))
+    host = os.environ.get("CONVEYER_HOST", "localhost")
+    logs = os.environ.get("CONVEYER_LOGS", "/tmp/conveyer-logs")
+    app = ConveyerApp(conveyer=Conveyer(
+        config={"log_file": logs},
+        file_override=file,
+        renamer=os.rename,
+    ))
+    app.app.run(host, port)
